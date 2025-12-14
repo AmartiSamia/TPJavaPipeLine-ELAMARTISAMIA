@@ -1,9 +1,9 @@
 pipeline {
-  agent any
-
-  tools {
-    maven 'Maven'     // nom configuré dans Jenkins (Global Tool Configuration)
-    jdk 'JDK17'       // ou JDK11/JDK8 selon ton projet
+  agent {
+    docker {
+      image 'my-maven-git:latest'
+      args '-v $HOME/.m2:/root/.m2'
+    }
   }
 
   stages {
@@ -16,7 +16,6 @@ pipeline {
     stage('Build & Test') {
       steps {
         dir('Java_project') {
-          sh 'mvn -v'
           sh 'mvn clean test package'
         }
       }
@@ -25,20 +24,8 @@ pipeline {
     stage('Run Jar') {
       steps {
         dir('Java_project') {
-          sh '''
-            JAR=$(ls -1 target/*.jar | grep -vE '(sources|javadoc)\\.jar' | head -n 1)
-            echo "Running: $JAR"
-            java -jar "$JAR"
-          '''
+          sh 'java -jar target/*.jar'
         }
-      }
-    }
-  }
-
-  post {
-    always {
-      dir('Java_project') {
-        archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
       }
     }
   }
